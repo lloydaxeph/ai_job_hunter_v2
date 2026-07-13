@@ -1,0 +1,8 @@
+playwright
+openai
+pyyaml
+pandas
+rich
+python-dotenv
+pydantic
+tenacity

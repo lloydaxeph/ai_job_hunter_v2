@@ -1,0 +1,26 @@
+from enum import Enum
+
+
+class JobStatus(str, Enum):
+    FOUND = "found"
+    APPLIED = "applied"
+    NOT_QUICK_APPLY = "not_quick_apply"
+    REQUIRES_MANUAL_REVIEW = "requires_manual_review"
+    TOO_MANY_STEPS = "too_many_steps"
+    FAILED = "failed"
+    DID_NOT_MATCH = "did_not_match"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class JobAgentMode(str, Enum):
+    QUICK_APPLY = "QUICK APPLY"
+    MANUAL_REVIEW = "MANUAL REVIEW"
+    NON_QUICK_APPLY = "NON-QUICK APPLY"
+    FAILED = "FAILED RUNS"
+    RERUN = "RERUN"
+    DEBUG = "DEBUG"
+
+    def __str__(self) -> str:
+        return self.value
