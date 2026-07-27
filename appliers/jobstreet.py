@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from ai.openai_client import AIClient
 from appliers.base import BaseApplier
@@ -99,50 +99,33 @@ class JobStreetApplier(BaseApplier):
         resume_container = page.locator("[data-testid='resumeSelectInput']")
         resume_container.wait_for(timeout=10000)
 
-        select = resume_container.locator("select[data-testid='select-input']")
-        select.wait_for(timeout=10000)
+        if self._select_resume_radio(resume_container, target_resume):
+            return
 
-        if select.count():
-            options = select.locator("option")
-            for i in range(options.count()):
-                option = options.nth(i)
-                text = (option.text_content() or "").strip()
-                if not text or text == "Please select a resumé":
-                    continue
-                if target_resume in text:
-                    value = option.get_attribute("value")
-                    select.select_option(value=value)
-                    page.wait_for_timeout(500)
-                    return
-
-        upload = page.locator("input[type='file']").first
-        if not upload.count():
+        upload_input = resume_container.locator("input[data-testid='file-input']").first
+        if not upload_input.count():
             raise RuntimeError("Resume upload input not found.")
 
-        upload.set_input_files(str(Path(resume_path).resolve()))
-        page.wait_for_timeout(1000)
+        upload_input.set_input_files(str(Path(resume_path).resolve()))
 
-        page.wait_for_function(
-            """(filename) => {
-                const select = document.querySelector("select[data-testid='select-input']");
-                if (!select) return false;
-                return Array.from(select.options).some(o => (o.textContent || '').includes(filename));
-            }""",
-            arg=target_resume,
-            timeout=15000,
-        )
+        resume_container.locator("strong", has_text=target_resume).first.wait_for(timeout=15000)
 
-        options = select.locator("option")
-        for i in range(options.count()):
-            option = options.nth(i)
-            text = (option.text_content() or "").strip()
-            if target_resume in text:
-                value = option.get_attribute("value")
-                select.select_option(value=value)
-                page.wait_for_timeout(500)
-                return
+        if self._select_resume_radio(resume_container, target_resume):
+            return
 
         raise RuntimeError(f"Unable to upload/select resume: {target_resume}")
+
+    @staticmethod
+    def _select_resume_radio(resume_container: Locator, target_resume: str) -> bool:
+        radios = resume_container.locator("input[type='radio'][name='document-select']")
+        for i in range(radios.count()):
+            radio = radios.nth(i)
+            label = resume_container.locator(f"label[for='{radio.get_attribute('id')}']")
+            text = (label.text_content() or "").strip()
+            if target_resume in text:
+                radio.check()
+                return True
+        return False
 
     def fill_known_fields(self, page: Page, cfg: AppConfig) -> None:
         personal = cfg.personal
